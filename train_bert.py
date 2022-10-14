@@ -91,7 +91,7 @@ tf.get_logger().setLevel('ERROR')
 tf.config.list_physical_devices('GPU')
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
-df = pd.read_csv('./hate_speech/train_v2.csv', sep=',')
+df = pd.read_csv('./hate_speech_cleansed/train_cleansed.csv', sep='|')
 
 df_cleansed = df.dropna().reset_index(drop=True)
 
@@ -110,4 +110,4 @@ for train_index, test_index in skf.split(df_cleansed['text'], df_cleansed['label
     print(f"X-Train: {X_train} | X-Test: {X_test}")
 
     model = train_bert(X_train=X_train, y_train=y_train,
-                    callbacks=[PlotLearning(), early_stopper])
+                       callbacks=[PlotLearning(), early_stopper])
