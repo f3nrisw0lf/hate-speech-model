@@ -111,8 +111,8 @@ for index, value in enumerate(skf.split(df_cleansed['text'], df_cleansed['label'
     label_df = pd.DataFrame(y_test)
     label_df = label_df.rename(columns={0: 'label'})
 
-    df_testing_dataset = pd.concat([text_df, label_df], axis=1)
-    df_testing_dataset.to_csv(f'csv_bert_test_dataset_fold_{index}.csv')
+    # df_testing_dataset = pd.concat([text_df, label_df], axis=1)
+    # df_testing_dataset.to_csv(f'csv_bert_test_dataset_fold_{index}.csv')
 
     early_stopper = tf.keras.callbacks.EarlyStopping(monitor="val_acc")
     print(f"X-Train: {X_train} | X-Test: {X_test}")
@@ -122,4 +122,9 @@ for index, value in enumerate(skf.split(df_cleansed['text'], df_cleansed['label'
 
     # Testing
     scores = model.predict(X_test, verbose=0)
-    np.savetxt(f"cv_bert_score_fold_{index}", scores, delimiter=',')
+    score_df = pd.DataFrame(scores)
+    score_df = score_df.rename(columns={0: 'prediction'})
+    df_testing_dataset = pd.concat([text_df, label_df, score_df], axis=1)
+
+    df_testing_dataset.to_csv(f'csv_bert_test_fold_{index}.csv')
+    # np.savetxt(f"cv_bert_score_fold_{index}", scores, delimiter=',')

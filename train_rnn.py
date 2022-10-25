@@ -1,9 +1,9 @@
-import re
-import string
+from gc import callbacks
+from stop_words import remove_stop_words
 from tkinter import X
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold
 
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -12,30 +12,13 @@ import tensorflow_text as tf_text
 
 from official.nlp import optimization  # to create AdamW optimizer
 
-
-def standardize(input_data):
-    lowercase_str = tf.strings.lower(input_data)
-    a_str = tf.strings.regex_replace(
-        lowercase_str, f"[{re.escape(string.punctuation)}]", "")
-    tokenizer = tf_text.WhitespaceTokenizer()
-    tokens = tokenizer.tokenize(a_str)
-    return tokens
-
-
-def plot_graphs(history, metric):
-    plt.plot(history.history[metric])
-    plt.plot(history.history[metric], '')
-    plt.xlabel("Epochs")
-    plt.ylabel(metric)
-    plt.legend([metric, metric])
-
-
 tf.get_logger().setLevel('ERROR')
-# tf.config.list_physical_devices('GPU')
-# print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+tf.config.list_physical_devices('GPU')
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 df = pd.read_csv('./hate_speech_cleansed/train_cleansed.csv', sep='|')
 df_cleansed = df.dropna().reset_index(drop=True)
+# remove_stop_words(df_cleansed['text'])
 
 X_train, X_test, y_train, y_test = train_test_split(
     df_cleansed['text'], df_cleansed['label'], stratify=df_cleansed['label'])
@@ -45,12 +28,15 @@ X_train, X_test, y_train, y_test = train_test_split(
 tf_dataset = tf.data.Dataset.from_tensor_slices(
     df_cleansed['text'].to_list())
 
+tf_dataset = tf.data.Dataset.from_tensor_slices(X_train)
+
 # Text Vectorization
 encoder = tf.keras.layers.TextVectorization(
-    max_tokens=1000, output_mode='int', standardize="lower_and_strip_punctuation", split="whitespace")
+    max_tokens=None, output_mode='int', standardize="lower_and_strip_punctuation", split="whitespace")
 encoder.adapt(tf_dataset)
+
 vocab = np.array(encoder.get_vocabulary())
-print(vocab[:20])
+
 
 # Training the Model
 model = tf.keras.Sequential([
@@ -69,18 +55,26 @@ model.compile(loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
               optimizer=tf.keras.optimizers.Adam(1e-4),
               metrics=['accuracy'])
 
-history = model.fit(X_train, y_train, epochs=1)
-print(X_test)
+early_stopper = tf.keras.callbacks.EarlyStopping(monitor="val_acc")
+history = model.fit(X_train, y_train, epochs=50, callbacks=[early_stopper])
+
+# Testing
+
+# Saving the Test Dataset for Performance Metrics
+text_df = pd.DataFrame(X_test)
+text_df = text_df.rename(columns={0: 'text'})
+
+label_df = pd.DataFrame(y_test)
+label_df = label_df.rename(columns={0: 'label'})
+
+df_testing_dataset = pd.concat([text_df, label_df], axis=1)
+
 scores = model.predict(X_test, verbose=0)
-np.savetxt("score.csv", scores, delimiter=',')
-# # Testing
-# test_loss, test_acc = model.evaluate(X_test, y_test)
-# print('Test Loss:', test_loss)
-# print('Test Accuracy:', test_acc)
-# print(history.history.keys())
-# plt.figure(figsize=(16, 6))
-# plt.subplot(1, 2, 1)
-# plot_graphs(history, 'accuracy')
-# plt.subplot(1, 2, 2)
-# plot_graphs(history, 'loss')
-# plt.show()
+score_df = pd.DataFrame(scores)
+score_df = score_df.rename(columns={0: 'prediction'})
+df_testing_dataset = pd.concat([text_df, label_df, score_df], axis=1)
+
+df_testing_dataset.to_csv(f'csv_rnn_test.csv')
+
+model.save('saved_model/rnn/v1')
+# np.savetxt(f"cv_rnn_score_fold_{index}", scores, delimiter=',')
