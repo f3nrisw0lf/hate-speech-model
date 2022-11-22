@@ -74,7 +74,6 @@ for index, value in enumerate(skf.split(df_cleansed['text'], df_cleansed['label'
                   metrics=['accuracy'])
 
     train_index, test_index = value
-    # print("TRAIN:", train_index, "TEST:", test_index)
     X_train, X_test = df_cleansed['text'][train_index], df_cleansed['text'][test_index]
     y_train, y_test = df_cleansed['label'][train_index], df_cleansed['label'][test_index]
 
@@ -86,10 +85,10 @@ for index, value in enumerate(skf.split(df_cleansed['text'], df_cleansed['label'
     label_df = label_df.rename(columns={0: 'label'})
 
     df_testing_dataset = pd.concat([text_df, label_df], axis=1)
-    df_testing_dataset.to_csv(f'csv_rnn_test_dataset_fold_{index}.csv')
+    # df_testing_dataset.to_csv(f'csv_rnn_test_dataset_fold_{index}.csv')
 
     # Training the Model
-    history = model.fit(X_train, y_train, epochs=10)
+    history = model.fit(X_train, y_train, epochs=5)
 
     # Testing
     scores = model.predict(X_test, verbose=0)

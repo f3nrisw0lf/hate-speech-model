@@ -22,7 +22,7 @@ df_cleansed = df.dropna().reset_index(drop=True)
 
 X_train, X_test, y_train, y_test = train_test_split(
     df_cleansed['text'], df_cleansed['label'], stratify=df_cleansed['label'])
-# print(df_cleansed.head())
+print("Train Sample Size: ", len(X_train))
 
 # Convert to TensorFlow Dataset
 tf_dataset = tf.data.Dataset.from_tensor_slices(
