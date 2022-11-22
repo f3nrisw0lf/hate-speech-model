@@ -35,6 +35,12 @@ encoder = tf.keras.layers.TextVectorization(
     max_tokens=None, output_mode='int', standardize="lower_and_strip_punctuation", split="whitespace")
 encoder.adapt(tf_dataset)
 
+# Print number of vocabulary
+print(
+    f"LENGTH: {len(encoder.get_vocabulary())}")
+np.savetxt("my_data.csv", np.array(
+    encoder.get_vocabulary()), delimiter=",", fmt='%s', encoding="utf-8")
+
 vocab = np.array(encoder.get_vocabulary())
 
 
